@@ -7,13 +7,17 @@ var mongoose   = require('mongoose');		//methods for mongo db
 var jwt = require('jsonwebtoken');			//for creating a web token
 var passport = require('passport');
 var bcrypt 		 = require('bcrypt-nodejs');
+var MongoClient = require('mongodb').MongoClient;
 //CALL OTHER MODUELS --------------------
 var User       = require('./user');
 var Movie	   = require('./movies');
+var Reviews = require('./reviews');
 //define some vars for later use
 var port       = process.env.PORT || 8080; // set the port for our app
 var dotenv = require('dotenv').config();
-var superSecret = process.env.superSecret;//this is for the webToken
+//var superSecret = process.env.superSecret;//this is for the webToken
+
+
 
 
 // APP CONFIGURATION ---------------------
@@ -37,9 +41,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // connect to our database 
-//mongoose.connect('mongodb://localhost/homework3db');
+
 mongoose.connect(process.env.DB);
-//mongoose.connect('mongodb://admin:admin123@ds215019.mlab.com:15019/homework3webapi');
+
 //=============================================================================================
 //ROUTES FOR THE API=====================
 
@@ -51,6 +55,46 @@ app.get('/', function(req, res) {
 // get an instance of the express router
 var apiRouter = express.Router();
 
+//=============================================================================================
+//CREATE A REVIEW
+//=============================================================================================
+apiRouter.post('/review',function(req,res){
+	if (!req.body.quote || !req.body.username){
+		res.json({success: false, msg: 'you have not entered all required data'});
+	}else{
+			//create and store new review
+			var review = new Reviews();
+			review.reviewerName = req.body.username;
+			review.quote = req.body.quote;
+			review.movieName = req.body.movieName;
+			review.rating = req.body.rating;
+
+			//see if the movie exists in the database
+			Movie.find({title: review.movieName})
+			.exec(function(err, result){
+				if (result.length == 0) {
+					return res.json({
+						success: false,
+						message: 'Movie DNE in the DataBAse.'
+					});
+				} else{
+						//save the review to the database
+					review.save(function(err){
+						if (err) {
+							// duplicate entry
+							if (err.code == 11000) 
+								return res.json({ success: false, message: 'this review already exists '});
+							else 
+								return res.send(err);
+						}
+
+						// return a message
+						res.json({ message: 'Review created!' });
+					});
+				}
+			});
+		};
+});
 //=============================================================================================
 //CREATE A USER ACCOUNT, WITH NAME, PASS, USERNAME
 //=============================================================================================
@@ -79,7 +123,7 @@ apiRouter.post('/signup',function(req, res) {
 				res.json({ message: 'User created!' });
 			});
 		};
-})
+});
 //=============================================================================================
 //FINDS THE USERNAME AND GRANT TOKEN IF USERNAME EXISTS
 //=============================================================================================
@@ -207,14 +251,38 @@ apiRouter.route('/movies')
 
 	})
 //---------------------------------------------------------------------------------------------
-	// get all the movies (accessed at GET http://localhost:8080/api/movies)
+	// get all the movies with or without rivews(accessed at GET http://localhost:8080/api/movies)
 	.get(function(req, res) {
-		Movie.find(function(err, aMovie) {
-			if (err) return res.send(err);
 
-			// return the users
-			res.json(aMovie);
-		});
+		if(req.query.reviews == 'true'){
+			//send reviews + films
+			MongoClient.connect(process.env.DB, function(err, db) {
+			if (err) throw err;
+			var dbo = db.db("homework3db");
+			dbo.collection('reviews').aggregate([
+					{ $lookup:
+						{
+							from: 'movies',
+							localField: 'movieName',
+							foreignField: 'title',
+							as: 'film'
+						}
+					}
+				]).toArray(function(err, result) {
+				if (err) throw err;
+				res.json(result);
+				db.close();
+				});
+			});
+
+		} else {
+			//send only films
+			Movie.find(function(err, aMovie) {
+				if (err) return res.send(err);
+					res.json(aMovie);
+			});
+		}
+
 	})
 //---------------------------------------------------------------------------------------------
 	.put(function(req, res) {
