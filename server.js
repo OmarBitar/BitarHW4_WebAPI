@@ -258,7 +258,7 @@ apiRouter.route('/movies')
 			//send reviews + films
 			MongoClient.connect(process.env.DB, function(err, db) {
 			if (err) throw err;
-			var dbo = db.db("homework3db");
+			var dbo = db.db("homework3webapi");
 			dbo.collection('reviews').aggregate([
 					{ $lookup:
 						{
