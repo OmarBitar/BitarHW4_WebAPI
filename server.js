@@ -15,7 +15,7 @@ var Reviews = require('./reviews');
 //define some vars for later use
 var port       = process.env.PORT || 8080; // set the port for our app
 var dotenv = require('dotenv').config();
-//var superSecret = process.env.superSecret;//this is for the webToken
+var superSecret = process.env.superSecret;//this is for the webToken
 
 
 
