@@ -7,7 +7,8 @@ var MovieSchema = new Schema({
   title: { type: String, required: true, index: { unique: true }},
   year: { type: String, required: true },
   genre: { type: String, required: true, enum:['Action','Adventure','Comedy','Drama','Fantasy','Horror','Mystery','Thriller','Western']},
-  actor : { type : Array , "default" : [] }
+  actor : { type : Array , "default" : [] },
+  img: {type: String, required: true}
 });
   
 //middleware that will check if connectedd to the database

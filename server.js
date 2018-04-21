@@ -17,9 +17,6 @@ var port       = process.env.PORT || 8080; // set the port for our app
 var dotenv = require('dotenv').config();
 var superSecret = process.env.superSecret;//this is for the webToken
 
-
-
-
 // APP CONFIGURATION ---------------------
 // use body parser so we can grab information from POST requests
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -55,46 +52,6 @@ app.get('/', function(req, res) {
 // get an instance of the express router
 var apiRouter = express.Router();
 
-//=============================================================================================
-//CREATE A REVIEW
-//=============================================================================================
-apiRouter.post('/review',function(req,res){
-	if (!req.body.quote || !req.body.username){
-		res.json({success: false, msg: 'you have not entered all required data'});
-	}else{
-			//create and store new review
-			var review = new Reviews();
-			review.reviewerName = req.body.username;
-			review.quote = req.body.quote;
-			review.movieName = req.body.movieName;
-			review.rating = req.body.rating;
-
-			//see if the movie exists in the database
-			Movie.find({title: review.movieName})
-			.exec(function(err, result){
-				if (result.length == 0) {
-					return res.json({
-						success: false,
-						message: 'Movie DNE in the DataBAse.'
-					});
-				} else{
-						//save the review to the database
-					review.save(function(err){
-						if (err) {
-							// duplicate entry
-							if (err.code == 11000) 
-								return res.json({ success: false, message: 'this review already exists '});
-							else 
-								return res.send(err);
-						}
-
-						// return a message
-						res.json({ message: 'Review created!' });
-					});
-				}
-			});
-		};
-});
 //=============================================================================================
 //CREATE A USER ACCOUNT, WITH NAME, PASS, USERNAME
 //=============================================================================================
@@ -222,6 +179,47 @@ apiRouter.use(function(req, res, next) {
 //=============================================================================================
 //CRUD COMMANDS FOR MOVIES DATABASE
 //=============================================================================================
+
+//=============================================================================================
+//CREATE A REVIEW
+//=============================================================================================
+apiRouter.post('/review',function(req,res){
+	if (!req.body.quote || !req.body.username){
+		res.json({success: false, msg: 'you have not entered all required data'});
+	}else{
+			//create and store new review
+			var review = new Reviews();
+			review.reviewerName = req.body.username;
+			review.quote = req.body.quote;
+			review.movieName = req.body.movieName;
+			review.rating = req.body.rating;
+
+			//see if the movie exists in the database
+			Movie.find({title: review.movieName})
+			.exec(function(err, result){
+				if (result.length == 0) {
+					return res.json({
+						success: false,
+						message: 'Movie DNE in the DataBAse.'
+					});
+				} else{
+						//save the review to the database
+					review.save(function(err){
+						if (err) {
+							// duplicate entry
+							if (err.code == 11000) 
+								return res.json({ success: false, message: 'this review already exists '});
+							else 
+								return res.send(err);
+						}
+
+						// return a message
+						res.json({ message: 'Review created!' });
+					});
+				}
+			});
+		};
+});
 //---------------------------------------------------------------------------------------------
 //this route handles the getters and setter for the movie collection
 apiRouter.route('/movies')
@@ -235,6 +233,7 @@ apiRouter.route('/movies')
 		movie.year = req.body.year;
 		movie.genre = req.body.genre;
 		movie.actor = req.body.actor;
+		movie.img = req.body.img;
         //save the user with the mongoose .save method
 		movie.save(function(err) {
 			if (err) {
@@ -253,7 +252,6 @@ apiRouter.route('/movies')
 //---------------------------------------------------------------------------------------------
 	// get all the movies with or without rivews(accessed at GET http://localhost:8080/api/movies)
 	.get(function(req, res) {
-
 		if(req.query.reviews == 'true'){
 			//send reviews + films
 			MongoClient.connect(process.env.DB, function(err, db) {
@@ -295,12 +293,13 @@ apiRouter.route('/movies')
 			if (req.body.year) movie.year = req.body.year;
 			if (req.body.genre) movie.genre = req.body.genre;
 			if (req.body.actor) movie.actor = req.body.actor;
+			if (req.body.img) movie.actor = req.body.img;
 			console.log(movie.title);
 			var newMovie = new Movie(movie);
 			// update the movie
 			
 			Movie.findOneAndUpdate({title: req.query.movie_id},{$set: {title: newMovie.title,
-				year: newMovie.year,genre: newMovie.genre,actor: newMovie.actor}},
+				year: newMovie.year,genre: newMovie.genre,actor: newMovie.actor,img: newMovie.img}},
 				{returnOriginal:false},function(err) {
 				console.log('saving new shit');
 				if (err) {
